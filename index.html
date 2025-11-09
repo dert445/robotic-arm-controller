@@ -1,145 +1,255 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Robotic Arm Controller</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Robotic Arm – BLE Controller</title>
 <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0b1120;
-    color: #e2e8f0;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-  }
-  h1 {
-    color: #60a5fa;
-    margin-top: 20px;
-  }
-  .section {
-    background: rgba(30,41,59,0.8);
-    margin: 15px auto;
-    padding: 15px;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 10px;
-  }
-  input[type=range] {
-    width: 100%;
-  }
-  button {
-    background: linear-gradient(135deg,#3b82f6,#2563eb);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 15px;
-    margin: 5px;
-    cursor: pointer;
-  }
-  button:hover { filter: brightness(1.1); }
-  #connectBtn.connected {
-    background: linear-gradient(135deg,#10b981,#059669);
-  }
+  :root { --bg:#0b1120; --card:#1f2937; --text:#e5e7eb; --accent:#3b82f6; --good:#10b981; --warn:#f59e0b; --bad:#ef4444; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;color:var(--text);background:var(--bg)}
+  h1{margin:16px 0;text-align:center;color:#93c5fd}
+  .wrap{max-width:840px;margin:0 auto;padding:12px}
+  .row{display:grid;gap:12px}
+  @media(min-width:720px){.row{grid-template-columns:1fr 1fr}}
+  .card{background:var(--card);border:1px solid #2b3342;border-radius:14px;padding:14px}
+  .status{display:flex;align-items:center;gap:8px;font-weight:600}
+  .dot{width:10px;height:10px;border-radius:999px;background:var(--bad)}
+  .dot.good{background:var(--good)} .dot.warn{background:var(--warn)}
+  button{background:linear-gradient(135deg,var(--accent),#2563eb);border:none;color:white;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+  button.ghost{background:#334155}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .btnbar{display:flex;flex-wrap:wrap;gap:8px}
+  .section-title{font-weight:800;margin:6px 0 10px;opacity:.9}
+  .slider{width:100%}
+  .control-block{display:grid;gap:8px}
+  .value{font-variant-numeric:tabular-nums}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .kbd{font-family:ui-monospace,Consolas,monospace;background:#111827;border:1px solid #374151;border-radius:6px;padding:2px 6px}
+  .footer{opacity:.7;text-align:center;margin-top:10px;font-size:12px}
 </style>
 </head>
 <body>
-<h1>🤖 Robotic Arm Controller</h1>
-<button id="connectBtn">🔌 Connect Bluetooth</button>
-<p id="status">Status: Disconnected</p>
+  <h1>🤖 Robotic Arm – BLE Controller</h1>
+  <div class="wrap">
+    <div class="row">
+      <div class="card">
+        <div class="section-title">Connection</div>
+        <div class="status"><span id="dot" class="dot"></span><span id="status">Disconnected</span></div>
+        <div class="btnbar" style="margin-top:10px;">
+          <button id="connect">🔌 Connect to RoboticArm_ESP32</button>
+          <button id="disconnect" class="ghost" disabled>Unpair</button>
+        </div>
+        <div style="margin-top:8px;font-size:13px;opacity:.8;">
+          If you can’t connect: make sure the ESP32 is advertising as <span class="kbd">RoboticArm_ESP32</span> and you’re on Chrome/Edge over HTTPS/localhost.
+        </div>
+      </div>
 
-<div class="section">
-  <h3>🎯 Presets</h3>
-  <button data-cmd="HOME">Home</button>
-  <button data-cmd="GRAB">Grab</button>
-  <button data-cmd="LIFT">Lift</button>
-  <button data-cmd="RELEASE">Release</button>
-  <button data-cmd="PARK">Park</button>
-</div>
+      <div class="card">
+        <div class="section-title">Presets</div>
+        <div class="btnbar">
+          <button data-cmd="HOME">Home</button>
+          <button data-cmd="GRAB">Grab</button>
+          <button data-cmd="LIFT">Lift</button>
+          <button data-cmd="RELEASE">Release</button>
+          <button data-cmd="PARK">Park</button>
+        </div>
+        <div class="section-title" style="margin-top:12px;">Gripper Quick</div>
+        <div class="btnbar">
+          <button data-cmd="O">Open</button>
+          <button data-cmd="C">Close</button>
+        </div>
+      </div>
+    </div>
 
-<div class="section">
-  <h3>🧭 Base</h3>
-  <input type="range" id="base" min="0" max="180" value="90">
-  <p>Angle: <span id="baseVal">90</span>°</p>
-</div>
+    <div class="row" style="margin-top:12px;">
+      <div class="card control-block">
+        <div class="section-title">Base</div>
+        <input id="base" class="slider" type="range" min="0" max="180" value="90" />
+        <div>Angle: <span id="baseVal" class="value">90</span>°</div>
+        <div class="grid2">
+          <button data-hold="A">◀️ Left (hold)</button>
+          <button data-hold="D">▶️ Right (hold)</button>
+        </div>
+      </div>
 
-<div class="section">
-  <h3>💪 Shoulder</h3>
-  <input type="range" id="shoulder" min="0" max="180" value="90">
-  <p>Angle: <span id="shoulderVal">90</span>°</p>
-</div>
+      <div class="card control-block">
+        <div class="section-title">Shoulder</div>
+        <input id="shoulder" class="slider" type="range" min="0" max="180" value="90" />
+        <div>Angle: <span id="shoulderVal" class="value">90</span>°</div>
+        <div class="grid2">
+          <button data-hold="W">⬆️ Up (hold)</button>
+          <button data-hold="S">⬇️ Down (hold)</button>
+        </div>
+      </div>
+    </div>
 
-<div class="section">
-  <h3>🦾 Elbow</h3>
-  <input type="range" id="elbow" min="0" max="180" value="90">
-  <p>Angle: <span id="elbowVal">90</span>°</p>
-</div>
+    <div class="row" style="margin-top:12px;">
+      <div class="card control-block">
+        <div class="section-title">Elbow</div>
+        <input id="elbow" class="slider" type="range" min="0" max="180" value="90" />
+        <div>Angle: <span id="elbowVal" class="value">90</span>°</div>
+        <div class="grid2">
+          <button data-hold="Q">⬆️ Extend (hold)</button>
+          <button data-hold="E">⬇️ Retract (hold)</button>
+        </div>
+      </div>
 
-<div class="section">
-  <h3>✋ Gripper</h3>
-  <input type="range" id="gripper" min="0" max="180" value="90">
-  <p>Angle: <span id="gripperVal">90</span>°</p>
-  <button data-cmd="O">Open</button>
-  <button data-cmd="C">Close</button>
-</div>
+      <div class="card control-block">
+        <div class="section-title">Gripper (dual, mirrored on ESP32)</div>
+        <input id="gripper" class="slider" type="range" min="0" max="180" value="90" />
+        <div>Angle: <span id="gripperVal" class="value">90</span>°</div>
+        <div class="grid3">
+          <button data-cmd="O">Open</button>
+          <button data-cmd="C">Close</button>
+          <button id="gCenter">Center (90°)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="section-title">Keyboard shortcuts</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:14px;">
+        <div><span class="kbd">A / D</span> base L/R (hold)</div>
+        <div><span class="kbd">W / S</span> shoulder up/down (hold)</div>
+        <div><span class="kbd">Q / E</span> elbow up/down (hold)</div>
+        <div><span class="kbd">Esc</span> STOP</div>
+      </div>
+    </div>
+
+    <div class="footer">UUIDs: FFE0 / FFE1 · Device: RoboticArm_ESP32</div>
+  </div>
 
 <script>
-let bleDevice, bleCharacteristic;
+(() => {
+  // BLE UUIDs
+  const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+  const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+  let device = null, characteristic = null;
 
-const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
-const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+  // UI refs
+  const statusEl = document.getElementById('status');
+  const dotEl = document.getElementById('dot');
+  const btnConnect = document.getElementById('connect');
+  const btnDisconnect = document.getElementById('disconnect');
 
-const connectBtn = document.getElementById('connectBtn');
-const statusP = document.getElementById('status');
+  const base = document.getElementById('base');
+  const shoulder = document.getElementById('shoulder');
+  const elbow = document.getElementById('elbow');
+  const gripper = document.getElementById('gripper');
 
-connectBtn.addEventListener('click', async () => {
-  try {
-    if (!navigator.bluetooth) {
-      alert('Web Bluetooth not supported. Use Chrome or Edge.');
-      return;
-    }
-    statusP.textContent = 'Status: Scanning...';
-    bleDevice = await navigator.bluetooth.requestDevice({
-      filters: [{ name: 'RoboticArm_ESP32' }],
-      optionalServices: [SERVICE_UUID]
-    });
-    const server = await bleDevice.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-    connectBtn.classList.add('connected');
-    statusP.textContent = 'Status: Connected ✅';
-  } catch (e) {
-    console.error(e);
-    statusP.textContent = 'Status: Connection failed ❌';
+  const baseVal = document.getElementById('baseVal');
+  const shoulderVal = document.getElementById('shoulderVal');
+  const elbowVal = document.getElementById('elbowVal');
+  const gripperVal = document.getElementById('gripperVal');
+
+  const encoder = new TextEncoder();
+
+  function setStatus(text, state='bad') {
+    statusEl.textContent = text;
+    dotEl.className = 'dot ' + (state==='good' ? 'good' : state==='warn' ? 'warn' : '');
   }
-});
 
-async function sendCommand(cmd) {
-  if (!bleCharacteristic) return alert('Not connected!');
-  const enc = new TextEncoder();
-  await bleCharacteristic.writeValueWithoutResponse(enc.encode(cmd + '\n'));
-  console.log('Sent:', cmd);
-}
+  async function send(cmd) {
+    if (!characteristic) { setStatus('Not connected', 'bad'); return; }
+    try {
+      await characteristic.writeValueWithoutResponse(encoder.encode(cmd + '\n'));
+      // console.log('Sent:', cmd);
+    } catch (e) {
+      console.error(e);
+      setStatus('Write failed / disconnected', 'bad');
+    }
+  }
 
-// Slider handlers
-function setupSlider(id, prefix) {
-  const el = document.getElementById(id);
-  const val = document.getElementById(id + 'Val');
-  el.addEventListener('input', () => {
-    val.textContent = el.value;
-    sendCommand(prefix + el.value);
+  // Debounce/throttle slider sends (send after user pause ~60ms)
+  function bindSlider(slider, label, prefix) {
+    let t=null, last=null;
+    slider.addEventListener('input', () => {
+      const v = slider.value;
+      label.textContent = v;
+      last = v;
+      if (t) clearTimeout(t);
+      t = setTimeout(() => { if (last!==null) send(prefix + last); }, 60);
+    });
+  }
+
+  bindSlider(base, baseVal, 'B');
+  bindSlider(shoulder, shoulderVal, 'SH');
+  bindSlider(elbow, elbowVal, 'EL');
+  bindSlider(gripper, gripperVal, 'G');
+
+  // Manual hold buttons (A/D/W/S/Q/E) -> send on press, STOP on release
+  function bindHold(btn, command) {
+    const down = (e) => { e.preventDefault(); send(command); };
+    const up = (e) => { e.preventDefault(); send('STOP'); };
+    ['mousedown','touchstart'].forEach(ev => btn.addEventListener(ev, down, {passive:false}));
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev => btn.addEventListener(ev, up, {passive:false}));
+  }
+  document.querySelectorAll('[data-hold]').forEach(btn => bindHold(btn, btn.dataset.hold));
+
+  // Preset & action buttons
+  document.querySelectorAll('[data-cmd]').forEach(btn => {
+    btn.addEventListener('click', () => send(btn.dataset.cmd));
   });
-}
-setupSlider('base','B');
-setupSlider('shoulder','SH');
-setupSlider('elbow','EL');
-setupSlider('gripper','G');
+  document.getElementById('gCenter').addEventListener('click', () => {
+    gripper.value = 90; gripperVal.textContent = '90'; send('G90');
+  });
 
-// Preset buttons
-document.querySelectorAll('button[data-cmd]').forEach(btn=>{
-  btn.addEventListener('click',()=>sendCommand(btn.dataset.cmd));
-});
+  // Keyboard holds
+  const keyToCmd = { 'a':'A','d':'D','w':'W','s':'S','q':'Q','e':'E' };
+  let held = new Set();
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (k === 'escape') { send('STOP'); return; }
+    if (keyToCmd[k] && !held.has(k)) {
+      held.add(k); send(keyToCmd[k]);
+    }
+  });
+  window.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+    if (keyToCmd[k] && held.has(k)) {
+      held.delete(k); send('STOP');
+    }
+  });
+
+  // Connect / Disconnect
+  btnConnect.addEventListener('click', async () => {
+    try {
+      if (!navigator.bluetooth) { alert('Web Bluetooth not supported. Use Chrome/Edge on Android or desktop.'); return; }
+      setStatus('Scanning...', 'warn');
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'RoboticArm_ESP32' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      device.addEventListener('gattserverdisconnected', () => {
+        setStatus('Disconnected', 'bad'); characteristic = null; btnDisconnect.disabled = true;
+      });
+      setStatus('Connecting...', 'warn');
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+      setStatus('Connected', 'good'); btnDisconnect.disabled = false;
+      // Initialize UI angles on device
+      send('B' + base.value);
+      send('SH' + shoulder.value);
+      send('EL' + elbow.value);
+      send('G' + gripper.value);
+    } catch (e) {
+      console.error(e);
+      setStatus('Connection failed', 'bad');
+    }
+  });
+
+  btnDisconnect.addEventListener('click', async () => {
+    try {
+      if (device && device.gatt.connected) await device.gatt.disconnect();
+    } catch(e) { console.error(e); }
+    characteristic = null;
+    setStatus('Disconnected', 'bad');
+    btnDisconnect.disabled = true;
+  });
+})();
 </script>
 </body>
 </html>
