@@ -1,173 +1,338 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Robotic Arm BLE Controller – Stable v3</title>
-<style>
-body{font-family:sans-serif;background:#0a0e27;color:#e2e8f0;margin:0;padding:20px;text-align:center}
-h1{color:#60a5fa}
-button{margin:5px;padding:10px 16px;font-weight:700;border:none;border-radius:8px;cursor:pointer;color:white;background:linear-gradient(135deg,#3b82f6,#2563eb)}
-button:disabled{opacity:.5}
-.range{width:80%;margin:10px auto}
-.status{margin-top:10px;font-weight:600}
-.good{color:#22c55e}.bad{color:#ef4444}.warn{color:#fbbf24}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;max-width:600px;margin:20px auto}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robotic Arm BLE Controller - Stable v4</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      background: #0a0e27;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    h3 {
+      border-top: 1px solid #334155;
+      padding-top: 20px;
+      margin-top: 30px;
+      color: #94a3b8;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s ease;
+      /* Prevent zoom on mobile */
+      touch-action: manipulation; 
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+    }
+    button:active {
+      transform: translateY(1px);
+    }
+    button:disabled {
+      opacity: 0.5;
+      transform: none;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+      cursor: not-allowed;
+    }
+    .range {
+      width: 90%;
+      margin: 10px auto;
+      accent-color: #3b82f6;
+    }
+    .status {
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 1.1em;
+      padding: 8px;
+      border-radius: 8px;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .good { color: #22c55e; background-color: rgba(34, 197, 94, 0.1); }
+    .bad { color: #ef4444; background-color: rgba(239, 68, 68, 0.1); }
+    .warn { color: #fbbf24; background-color: rgba(251, 191, 36, 0.1); }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    label {
+      font-size: 0.9em;
+      color: #cbd5e1;
+    }
+    label span {
+      font-weight: 700;
+      font-size: 1.1em;
+      color: #e2e8f0;
+    }
+  </style>
 </head>
 <body>
-<h1>🤖 Robotic Arm BLE Controller</h1>
 
-<div class="status bad" id="status">🔴 Disconnected</div>
-<div style="margin:10px;">
-  <button id="connect">🔌 Connect</button>
-  <button id="disconnect" disabled>Disconnect</button>
-</div>
+<div class="container">
+  <h1>🤖 Robotic Arm BLE Controller</h1>
 
-<h3>Manual Controls</h3>
-<div class="grid">
-  <button data-hold="A">Base Left</button>
-  <button data-hold="D">Base Right</button>
-  <button data-hold="W">Shoulder Up</button>
-  <button data-hold="S">Shoulder Down</button>
-  <button data-hold="Q">Elbow Up</button>
-  <button data-hold="E">Elbow Down</button>
-  <button data-cmd="O">Open Grip</button>
-  <button data-cmd="C">Close Grip</button>
-  <button data-cmd="STOP">STOP</button>
-</div>
+  <div class="status bad" id="status">🔴 Disconnected</div>
+  <div style="margin:20px 0;">
+    <button id="connect">🔌 Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+  </div>
 
-<h3>Servo Angles</h3>
-<div>
-  <label>Base: <span id="baseVal">90</span>°</label><br>
-  <input type="range" id="base" class="range" min="0" max="180" value="90">
-</div>
-<div>
-  <label>Shoulder: <span id="shoulderVal">90</span>°</label><br>
-  <input type="range" id="shoulder" class="range" min="0" max="180" value="90">
-</div>
-<div>
-  <label>Elbow: <span id="elbowVal">90</span>°</label><br>
-  <input type="range" id="elbow" class="range" min="0" max="180" value="90">
-</div>
-<div>
-  <label>Gripper: <span id="gripperVal">90</span>°</label><br>
-  <input type="range" id="gripper" class="range" min="0" max="180" value="90">
+  <h3>Servo Angles</h3>
+  <div>
+    <label>Base: <span id="baseVal">90</span>°</label><br>
+    <input type="range" id="base" class="range" min="0" max="180" value="90">
+  </div>
+  <div>
+    <label>Shoulder: <span id="shoulderVal">90</span>°</label><br>
+    <input type="range" id="shoulder" class="range" min="0" max="180" value="90">
+  </div>
+  <div>
+    <label>Elbow: <span id="elbowVal">90</span>°</label><br>
+    <input type="range" id="elbow" class="range" min="0" max="180" value="90">
+  </div>
+  <div>
+    <label>Gripper: <span id="gripperVal">90</span>°</label><br>
+    <input type="range" id="gripper" class="range" min="0" max="180" value="90">
+  </div>
+
+  <h3>Manual Controls</h3>
+  <div class="grid">
+    <button data-hold="A">Base Left</button>
+    <button data-hold="D">Base Right</button>
+    <button data-hold="W">Shoulder Up</button>
+    <button data-hold="S">Shoulder Down</button>
+    <button data-hold="Q">Elbow Up</button>
+    <button data-hold="E">Elbow Down</button>
+    <button data-cmd="O">Open Grip</button>
+    <button data-cmd="C">Close Grip</button>
+    <button data-cmd="STOP" style="background: linear-gradient(135deg, #f43f5e, #dc2626);">STOP</button>
+  </div>
 </div>
 
 <script>
+// --- CONFIGURATION ---
+// These MUST match what's in your ESP32 Arduino code
 const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
+const DEVICE_NAME = 'RoboticArm_ESP32';
 
-let device = null, characteristic = null, keepAliveTimer = null;
+// --- GLOBALS ---
+let device = null;
+let characteristic = null;
 
+// --- DOM ELEMENTS ---
 const statusEl = document.getElementById('status');
 const connectBtn = document.getElementById('connect');
 const disconnectBtn = document.getElementById('disconnect');
 
-function setStatus(msg, state='bad'){
+/**
+ * Helper function to create a delay.
+ * @param {number} ms - Milliseconds to wait
+ */
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Updates the status message and color.
+ * @param {string} msg - The message to display
+ * @param {'good'|'warn'|'bad'} state - The visual state
+ */
+function setStatus(msg, state = 'bad') {
   statusEl.textContent = msg;
-  statusEl.className = 'status ' + (state==='good'?'good':state==='warn'?'warn':'bad');
+  statusEl.className = 'status ' + (state === 'good' ? 'good' : state === 'warn' ? 'warn' : 'bad');
 }
 
-async function send(cmd){
-  if (!characteristic) return;
-  try{
+/**
+ * Sends a command string to the BLE characteristic.
+ * @param {string} cmd - The command to send
+ */
+async function send(cmd) {
+  if (!characteristic) {
+    console.warn('Cannot send: Not connected.');
+    return;
+  }
+  try {
+    // The '\n' is important for Arduino's readStringUntil('\n')
     await characteristic.writeValueWithoutResponse(new TextEncoder().encode(cmd + '\n'));
     console.log('Sent:', cmd);
-  }catch(e){
+  } catch (e) {
     console.warn('Write failed:', e);
-    setStatus('⚠️ Lost connection', 'warn');
+    // This often happens if the device disconnects
+    setStatus('⚠️ Write failed. Connection lost?', 'warn');
   }
 }
 
-async function connect(){
-  try{
-    setStatus('🔍 Scanning...', 'warn');
+/**
+ * Scans for, connects to, and configures the BLE device.
+ */
+async function connect() {
+  setStatus('🔍 Scanning...', 'warn');
+  connectBtn.disabled = true;
+
+  try {
     device = await navigator.bluetooth.requestDevice({
-      filters:[{ name:'RoboticArm_ESP32' }],
-      optionalServices:[SERVICE_UUID]
+      filters: [{ name: DEVICE_NAME }],
+      optionalServices: [SERVICE_UUID]
     });
+    
+    // Add event listener *before* connecting
     device.addEventListener('gattserverdisconnected', onDisconnect);
+
+    setStatus('🤝 Connecting to GATT...', 'warn');
     const server = await device.gatt.connect();
     const service = await server.getPrimaryService(SERVICE_UUID);
     characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
     setStatus('🟢 Connected', 'good');
-    connectBtn.disabled = true;
     disconnectBtn.disabled = false;
 
-    // Keep connection alive every 2s
-    keepAliveTimer = setInterval(()=> send('PING'),2000);
+    // --- STABLE INITIALIZATION ---
+    // Send initial servo positions one-by-one with a delay.
+    // This is much more reliable than sending them all at once.
+    setStatus('⚙️ Configuring arm...', 'warn');
+    const initCommands = ['B90', 'SH90', 'EL90', 'G90'];
+    for (const cmd of initCommands) {
+      await send(cmd);
+      await delay(100); // Wait 100ms between commands
+    }
 
-    // Initialize servo positions
-    ['B90','SH90','EL90','G90'].forEach(cmd=>send(cmd));
-  }catch(e){
+    setStatus('✅ Connected & Ready', 'good');
+
+  } catch (e) {
     console.error(e);
-    setStatus('❌ Connection failed', 'bad');
+    setStatus(`❌ Error: ${e.message.split(' (')[0]}`, 'bad');
+    // Re-enable button if connection failed
+    connectBtn.disabled = false;
   }
 }
 
-function onDisconnect(){
+/**
+ * Handles the 'gattserverdisconnected' event.
+ */
+function onDisconnect() {
   setStatus('🔴 Disconnected', 'bad');
   connectBtn.disabled = false;
   disconnectBtn.disabled = true;
+  device = null;
   characteristic = null;
-  clearInterval(keepAliveTimer);
 }
 
-async function disconnect(){
-  if(device && device.gatt.connected){
+/**
+ * Manually disconnects from the device.
+ */
+async function disconnect() {
+  if (device && device.gatt.connected) {
     await device.gatt.disconnect();
-    setStatus('🔴 Disconnected', 'bad');
+    // onDisconnect() will be called automatically
+  } else {
+    // Just in case
+    onDisconnect();
   }
-  clearInterval(keepAliveTimer);
-  connectBtn.disabled = false;
-  disconnectBtn.disabled = true;
 }
 
-// Button listeners
+// --- INITIALIZE EVENT LISTENERS ---
+
+// Connect/Disconnect buttons
 connectBtn.onclick = connect;
 disconnectBtn.onclick = disconnect;
 
-// Command buttons
-document.querySelectorAll('[data-cmd]').forEach(btn=>{
-  btn.addEventListener('click', ()=> send(btn.dataset.cmd));
+// Command buttons (single click)
+document.querySelectorAll('[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', () => send(btn.dataset.cmd));
 });
 
 // Hold buttons (continuous movement)
-document.querySelectorAll('[data-hold]').forEach(btn=>{
+document.querySelectorAll('[data-hold]').forEach(btn => {
   const cmd = btn.dataset.hold;
-  btn.addEventListener('mousedown', ()=>send(cmd));
-  btn.addEventListener('mouseup', ()=>send('STOP'));
-  btn.addEventListener('mouseleave', ()=>send('STOP'));
-  btn.addEventListener('touchstart', (e)=>{e.preventDefault(); send(cmd);});
-  btn.addEventListener('touchend', ()=>send('STOP'));
+  let pressTimer = null;
+
+  const startSending = (e) => {
+    // Prevent default touch behavior (like scrolling or zooming)
+    if (e.type === 'touchstart') e.preventDefault();
+    
+    // Stop any previous "STOP" command
+    clearTimeout(pressTimer);
+    
+    // Send the command
+    send(cmd);
+  };
+  
+  const stopSending = () => {
+    // Send the "STOP" command after a tiny delay
+    // This prevents the "STOP" from arriving before the last "move" command
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => send('STOP'), 50);
+  };
+  
+  // Mouse events
+  btn.addEventListener('mousedown', startSending);
+  btn.addEventListener('mouseup', stopSending);
+  btn.addEventListener('mouseleave', stopSending);
+  
+  // Touch events
+  btn.addEventListener('touchstart', startSending);
+  btn.addEventListener('touchend', stopSending);
 });
 
-// Slider controls
-function bindSlider(id, prefix){
+/**
+ * Binds a slider to send a command, with debouncing.
+ * @param {string} id - The ID of the slider element
+ * @param {string} prefix - The command prefix (e.g., 'B' for Base)
+ */
+function bindSlider(id, prefix) {
   const el = document.getElementById(id);
-  const valEl = document.getElementById(id+'Val');
-  let timer=null;
-  el.addEventListener('input', ()=>{
+  const valEl = document.getElementById(id + 'Val');
+  let timer = null;
+  
+  el.addEventListener('input', () => {
+    // Update the label immediately
     valEl.textContent = el.value;
+    
+    // Clear the previous timeout
     clearTimeout(timer);
-    timer=setTimeout(()=> send(prefix+el.value),100);
+    
+    // Set a new timeout to send the command
+    // This prevents flooding the BLE connection
+    timer = setTimeout(() => {
+      send(prefix + el.value);
+    }, 150); // 150ms debounce
   });
 }
-bindSlider('base','B');
-bindSlider('shoulder','SH');
-bindSlider('elbow','EL');
-bindSlider('gripper','G');
 
-// Auto reconnect attempt every 5s if lost
-setInterval(()=>{
-  if(device && !characteristic && !connectBtn.disabled){
-    console.log('Attempting auto reconnect...');
-    connect();
-  }
-},5000);
+bindSlider('base', 'B');
+bindSlider('shoulder', 'SH');
+bindSlider('elbow', 'EL');
+bindSlider('gripper', 'G');
+
 </script>
 </body>
 </html>
