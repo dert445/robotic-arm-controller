@@ -1,219 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robotic Arm Control v3</title>
-
-  <meta name="theme-color" content="#0a0e27">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Arm Control">
-
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Rajdhani:wght@600&display=swap');
-
-    body {
-      font-family: 'Rajdhani', sans-serif;
-      background: radial-gradient(circle at top, #0a0e27, #000);
-      color: #e2e8f0;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-
-    h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 30px;
-      font-weight: 900;
-      background: linear-gradient(135deg, #3b82f6, #a855f7);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-top: 20px;
-    }
-
-    .container {
-      max-width: 420px;
-      margin: 20px auto;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      border-radius: 20px;
-      box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
-      padding: 20px;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      margin: 10px 0;
-      font-family: 'Orbitron', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      color: white;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    button:active {
-      transform: scale(0.96);
-    }
-
-    .connect-btn { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    .preset-btn  { background: linear-gradient(135deg, #10b981, #059669); }
-    .manual-btn  { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .gripper-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); }
-
-    .status {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 10px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #ef4444;
-    }
-
-    .status.connected {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #10b981;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .section-title {
-      margin-top: 20px;
-      font-family: 'Orbitron', sans-serif;
-      letter-spacing: 1px;
-      font-size: 14px;
-      color: #93c5fd;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robotic Arm Controller</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0b1120;
+    color: #e2e8f0;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+  h1 {
+    color: #60a5fa;
+    margin-top: 20px;
+  }
+  .section {
+    background: rgba(30,41,59,0.8);
+    margin: 15px auto;
+    padding: 15px;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 10px;
+  }
+  input[type=range] {
+    width: 100%;
+  }
+  button {
+    background: linear-gradient(135deg,#3b82f6,#2563eb);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 15px;
+    margin: 5px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(1.1); }
+  #connectBtn.connected {
+    background: linear-gradient(135deg,#10b981,#059669);
+  }
+</style>
 </head>
 <body>
-  <h1>⚡ Robotic Arm Controller ⚡</h1>
-  <div class="container">
-    <button id="connectBtn" class="connect-btn">🔗 Initialize Connection</button>
-    <div id="status" class="status">SYSTEM OFFLINE</div>
+<h1>🤖 Robotic Arm Controller</h1>
+<button id="connectBtn">🔌 Connect Bluetooth</button>
+<p id="status">Status: Disconnected</p>
 
-    <div class="section-title">🎯 Preset Sequences</div>
-    <div class="grid">
-      <button class="preset-btn" data-cmd="HOME">🏠 Home</button>
-      <button class="preset-btn" data-cmd="GRAB">🤖 Grab</button>
-      <button class="preset-btn" data-cmd="LIFT">⬆️ Lift</button>
-      <button class="preset-btn" data-cmd="RELEASE">👐 Release</button>
-      <button class="preset-btn" data-cmd="PARK">🅿️ Park</button>
-    </div>
+<div class="section">
+  <h3>🎯 Presets</h3>
+  <button data-cmd="HOME">Home</button>
+  <button data-cmd="GRAB">Grab</button>
+  <button data-cmd="LIFT">Lift</button>
+  <button data-cmd="RELEASE">Release</button>
+  <button data-cmd="PARK">Park</button>
+</div>
 
-    <div class="section-title">🎮 Manual Control</div>
-    <div class="grid">
-      <button class="manual-btn" data-cmd="W">Shoulder ↑</button>
-      <button class="manual-btn" data-cmd="S">Shoulder ↓</button>
-      <button class="manual-btn" data-cmd="A">Base ←</button>
-      <button class="manual-btn" data-cmd="D">Base →</button>
-      <button class="manual-btn" data-cmd="Q">Elbow ↑</button>
-      <button class="manual-btn" data-cmd="E">Elbow ↓</button>
-      <button class="gripper-btn" data-cmd="O">🤏 Open</button>
-      <button class="gripper-btn" data-cmd="C">✊ Close</button>
-    </div>
-  </div>
+<div class="section">
+  <h3>🧭 Base</h3>
+  <input type="range" id="base" min="0" max="180" value="90">
+  <p>Angle: <span id="baseVal">90</span>°</p>
+</div>
 
-  <script>
-    let bluetoothDevice;
-    let characteristic;
-    const statusEl = document.getElementById("status");
-    const connectBtn = document.getElementById("connectBtn");
+<div class="section">
+  <h3>💪 Shoulder</h3>
+  <input type="range" id="shoulder" min="0" max="180" value="90">
+  <p>Angle: <span id="shoulderVal">90</span>°</p>
+</div>
 
-    const SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    const CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
-    const encoder = new TextEncoder();
+<div class="section">
+  <h3>🦾 Elbow</h3>
+  <input type="range" id="elbow" min="0" max="180" value="90">
+  <p>Angle: <span id="elbowVal">90</span>°</p>
+</div>
 
-    async function connectBLE() {
-      try {
-        if (!navigator.bluetooth) {
-          alert("⚠️ Web Bluetooth not supported on this browser.");
-          return;
-        }
+<div class="section">
+  <h3>✋ Gripper</h3>
+  <input type="range" id="gripper" min="0" max="180" value="90">
+  <p>Angle: <span id="gripperVal">90</span>°</p>
+  <button data-cmd="O">Open</button>
+  <button data-cmd="C">Close</button>
+</div>
 
-        statusEl.textContent = "🔍 Scanning for RoboticArm_ESP32...";
-        statusEl.className = "status";
+<script>
+let bleDevice, bleCharacteristic;
 
-        bluetoothDevice = await navigator.bluetooth.requestDevice({
-          filters: [{ name: "RoboticArm_ESP32" }],
-          optionalServices: [SERVICE_UUID],
-        });
+const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
 
-        const server = await bluetoothDevice.gatt.connect();
-        const service = await server.getPrimaryService(SERVICE_UUID);
-        characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+const connectBtn = document.getElementById('connectBtn');
+const statusP = document.getElementById('status');
 
-        bluetoothDevice.addEventListener("gattserverdisconnected", onDisconnected);
-
-        statusEl.textContent = "✅ Connected to RoboticArm_ESP32";
-        statusEl.className = "status connected";
-        connectBtn.textContent = "✅ Connected";
-
-        console.log("Connected to BLE device");
-      } catch (error) {
-        console.error(error);
-        statusEl.textContent = "❌ Connection failed";
-        statusEl.className = "status";
-      }
+connectBtn.addEventListener('click', async () => {
+  try {
+    if (!navigator.bluetooth) {
+      alert('Web Bluetooth not supported. Use Chrome or Edge.');
+      return;
     }
-
-    function onDisconnected() {
-      statusEl.textContent = "🔴 Disconnected";
-      statusEl.className = "status";
-      connectBtn.textContent = "🔗 Reconnect";
-      characteristic = null;
-    }
-
-    async function sendCommand(cmd) {
-      if (!characteristic) {
-        alert("⚠️ Please connect to RoboticArm_ESP32 first!");
-        return;
-      }
-      try {
-        const data = encoder.encode(cmd + "\n");
-        await characteristic.writeValueWithoutResponse(data);
-        console.log("Command sent:", cmd);
-      } catch (error) {
-        console.error("Write failed:", error);
-        statusEl.textContent = "⚠️ Disconnected during send";
-        statusEl.className = "status";
-      }
-    }
-
-    // Connect button
-    connectBtn.addEventListener("click", connectBLE);
-
-    // Command buttons
-    document.querySelectorAll("button[data-cmd]").forEach((btn) => {
-      const cmd = btn.dataset.cmd;
-
-      // For manual control (press & hold)
-      if (["W", "S", "A", "D", "Q", "E"].includes(cmd)) {
-        btn.addEventListener("mousedown", () => sendCommand(cmd));
-        btn.addEventListener("mouseup", () => sendCommand("STOP"));
-        btn.addEventListener("mouseleave", () => sendCommand("STOP"));
-        btn.addEventListener("touchstart", (e) => {
-          e.preventDefault();
-          sendCommand(cmd);
-        }, { passive: false });
-        btn.addEventListener("touchend", () => sendCommand("STOP"));
-      } else {
-        // Single press actions
-        btn.addEventListener("click", () => sendCommand(cmd));
-      }
+    statusP.textContent = 'Status: Scanning...';
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'RoboticArm_ESP32' }],
+      optionalServices: [SERVICE_UUID]
     });
-  </script>
+    const server = await bleDevice.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+    connectBtn.classList.add('connected');
+    statusP.textContent = 'Status: Connected ✅';
+  } catch (e) {
+    console.error(e);
+    statusP.textContent = 'Status: Connection failed ❌';
+  }
+});
+
+async function sendCommand(cmd) {
+  if (!bleCharacteristic) return alert('Not connected!');
+  const enc = new TextEncoder();
+  await bleCharacteristic.writeValueWithoutResponse(enc.encode(cmd + '\n'));
+  console.log('Sent:', cmd);
+}
+
+// Slider handlers
+function setupSlider(id, prefix) {
+  const el = document.getElementById(id);
+  const val = document.getElementById(id + 'Val');
+  el.addEventListener('input', () => {
+    val.textContent = el.value;
+    sendCommand(prefix + el.value);
+  });
+}
+setupSlider('base','B');
+setupSlider('shoulder','SH');
+setupSlider('elbow','EL');
+setupSlider('gripper','G');
+
+// Preset buttons
+document.querySelectorAll('button[data-cmd]').forEach(btn=>{
+  btn.addEventListener('click',()=>sendCommand(btn.dataset.cmd));
+});
+</script>
 </body>
 </html>
