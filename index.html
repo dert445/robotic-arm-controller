@@ -4,69 +4,102 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>F1 Car BLE Control</title>
+  <!-- Using Google Fonts for a cleaner look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      background: radial-gradient(circle, #111, #000);
+      background: radial-gradient(circle, #1a1a1a, #000);
       color: white;
       text-align: center;
       font-family: 'Poppins', sans-serif;
       overflow: hidden;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
 
     h1 {
       margin-top: 10px;
       font-size: 1.6rem;
+      font-weight: 600;
     }
 
     #status {
       color: #00bfff;
       font-size: 1rem;
       margin: 10px 0;
+      min-height: 1.2em; /* Prevent layout shift */
     }
 
     #connectBtn {
       background: #00bfff;
       border: none;
       color: white;
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 1.1rem;
+      font-weight: 600;
       border-radius: 10px;
       cursor: pointer;
       margin-top: 10px;
+      transition: background-color 0.3s, transform 0.1s;
+    }
+    
+    #connectBtn:hover {
+      background: #0099cc;
+    }
+
+    #connectBtn:active {
+      transform: scale(0.98);
     }
 
     #connectBtn:disabled {
-      background: #666;
+      background: #555;
+      color: #999;
       cursor: not-allowed;
     }
 
     .joysticks {
       display: flex;
       justify-content: space-around;
-      margin-top: 40px;
+      margin-top: 30px;
       flex-wrap: wrap;
+      width: 100%;
+      max-width: 500px;
     }
 
     .joystick-container {
       margin: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .joystick-label {
       font-size: 0.9rem;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
       color: #aaa;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     canvas {
       background: #222;
       border: 2px solid #555;
       border-radius: 50%;
-      touch-action: none;
+      touch-action: none; /* Important for touch controls */
+      width: 150px; /* Scaled down for better mobile fit */
+      height: 150px;
     }
 
     .buttons {
-      margin-top: 40px;
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
     }
 
     button {
@@ -75,9 +108,10 @@
       color: white;
       padding: 12px 24px;
       font-size: 1rem;
-      margin: 8px;
+      font-weight: 600;
       border-radius: 10px;
       cursor: pointer;
+      transition: background-color 0.3s, transform 0.1s;
     }
 
     button:hover {
@@ -89,22 +123,26 @@
     }
 
     .super {
-      background: #ff4444;
+      background: #e63946; /* A slightly softer red */
     }
 
     .super.active {
       background: #ff0000;
-      box-shadow: 0 0 20px #ff0000;
+      box-shadow: 0 0 20px #ff0000, 0 0 10px #ff4444 inset;
     }
 
     .stop {
       background: #ff8800;
     }
+    
+    .stop:hover {
+      background: #cc7000;
+    }
 
     #values {
-      margin-top: 20px;
+      margin-top: 25px;
       font-size: 0.9rem;
-      color: #888;
+      color: #999;
     }
   </style>
 </head>
@@ -117,11 +155,12 @@
   <div class="joysticks">
     <div class="joystick-container">
       <div class="joystick-label">THROTTLE</div>
-      <canvas id="moveJoy" width="200" height="200"></canvas>
+      <!-- Set canvas resolution -->
+      <canvas id="moveJoy" width="150" height="150"></canvas>
     </div>
     <div class="joystick-container">
       <div class="joystick-label">STEERING</div>
-      <canvas id="steerJoy" width="200" height="200"></canvas>
+      <canvas id="steerJoy" width="150" height="150"></canvas>
     </div>
   </div>
 
@@ -133,9 +172,9 @@
   <div id="values">Throttle: 0% | Steering: 0% | Mode: Normal</div>
 
   <script>
-    // BLE UUIDs matching ESP32 code
-    const SERVICE_UUID = "19B10000-E8F2-537E-4F6C-D104768A1214";
-    const CHARACTERISTIC_UUID = "19B10001-E8F2-537E-4F6C-D104768A1214";
+    // --- FIX: UUIDs MUST be lowercase for Web Bluetooth API ---
+    const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+    const CHARACTERISTIC_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 
     let bleDevice;
     let bleCharacteristic;
@@ -146,12 +185,17 @@
     let ctx1 = moveCanvas.getContext("2d");
     let ctx2 = steerCanvas.getContext("2d");
 
-    let center1 = { x: 100, y: 100 };
-    let center2 = { x: 100, y: 100 };
-    let moveJoy = { x: 100, y: 100 };
-    let steerJoy = { x: 100, y: 100 };
+    // Adjusted dimensions for 150x150 canvas
+    const CANVAS_SIZE = 150;
+    const CENTER = CANVAS_SIZE / 2;
+    const RADIUS = (CANVAS_SIZE / 2) * 0.8; // 80% of half-size
+    const HANDLE_RADIUS = (CANVAS_SIZE / 2) * 0.25; // 25% of half-size
 
-    let radius = 80;
+    let center1 = { x: CENTER, y: CENTER };
+    let center2 = { x: CENTER, y: CENTER };
+    let moveJoy = { x: CENTER, y: CENTER };
+    let steerJoy = { x: CENTER, y: CENTER };
+
     let throttleValue = 0;
     let steerValue = 0;
     let superSpeed = false;
@@ -159,11 +203,11 @@
 
     // Draw joystick
     function drawJoystick(ctx, joy, center) {
-      ctx.clearRect(0, 0, 200, 200);
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
       
       // Outer circle
       ctx.beginPath();
-      ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+      ctx.arc(center.x, center.y, RADIUS, 0, Math.PI * 2);
       ctx.strokeStyle = "#888";
       ctx.lineWidth = 2;
       ctx.stroke();
@@ -176,14 +220,15 @@
       
       // Joystick handle
       ctx.beginPath();
-      ctx.arc(joy.x, joy.y, 25, 0, Math.PI * 2);
-      ctx.fillStyle = "#00bfff";
+      ctx.arc(joy.x, joy.y, HANDLE_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 191, 255, 0.8)"; // Semi-transparent
       ctx.fill();
       ctx.strokeStyle = "#0088cc";
       ctx.lineWidth = 3;
       ctx.stroke();
     }
 
+    // Initial draw
     drawJoystick(ctx1, moveJoy, center1);
     drawJoystick(ctx2, steerJoy, center2);
 
@@ -210,13 +255,16 @@
         // Handle disconnection
         bleDevice.addEventListener('gattserverdisconnected', () => {
           isConnected = false;
+          bleCharacteristic = null;
+          bleDevice = null;
           document.getElementById("status").textContent = "❌ Disconnected";
           document.getElementById("connectBtn").disabled = false;
         });
 
       } catch (error) {
         document.getElementById("status").textContent = "⚠️ Connection failed";
-        alert("Bluetooth connection failed: " + error);
+        // --- FIX: Replaced alert() with console.error() ---
+        console.error("Bluetooth connection failed:", error);
       }
     });
 
@@ -226,40 +274,44 @@
       let dy = y - center1.y;
       let dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (dist > radius) {
+      if (dist > RADIUS) {
         let angle = Math.atan2(dy, dx);
-        x = center1.x + radius * Math.cos(angle);
-        y = center1.y + radius * Math.sin(angle);
+        x = center1.x + RADIUS * Math.cos(angle);
+        y = center1.y + RADIUS * Math.sin(angle);
       }
       
       moveJoy = { x, y };
       drawJoystick(ctx1, moveJoy, center1);
       
       // Calculate throttle (-100 to 100, inverted Y axis)
-      throttleValue = Math.round(-(y - center1.y) / radius * 100);
+      throttleValue = Math.round(-(y - center1.y) / RADIUS * 100);
       throttleValue = Math.max(-100, Math.min(100, throttleValue));
       
       sendBLEData();
     }
+    
+    function getTouchCoords(canvas, e) {
+        let rect = canvas.getBoundingClientRect();
+        return {
+            x: e.touches[0].clientX - rect.left,
+            y: e.touches[0].clientY - rect.top
+        };
+    }
 
     moveCanvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      let rect = moveCanvas.getBoundingClientRect();
-      let x = e.touches[0].clientX - rect.left;
-      let y = e.touches[0].clientY - rect.top;
-      handleMoveTouch(x, y);
-    });
+      let coords = getTouchCoords(moveCanvas, e);
+      handleMoveTouch(coords.x, coords.y);
+    }, { passive: false });
 
     moveCanvas.addEventListener("touchmove", (e) => {
       e.preventDefault();
-      let rect = moveCanvas.getBoundingClientRect();
-      let x = e.touches[0].clientX - rect.left;
-      let y = e.touches[0].clientY - rect.top;
-      handleMoveTouch(x, y);
-    });
+      let coords = getTouchCoords(moveCanvas, e);
+      handleMoveTouch(coords.x, coords.y);
+    }, { passive: false });
 
     moveCanvas.addEventListener("touchend", () => {
-      moveJoy = { x: 100, y: 100 };
+      moveJoy = { x: CENTER, y: CENTER };
       drawJoystick(ctx1, moveJoy, center1);
       throttleValue = 0;
       sendBLEData();
@@ -271,17 +323,22 @@
       let dy = y - center2.y;
       let dist = Math.sqrt(dx * dx + dy * dy);
       
-      if (dist > radius) {
+      // Steering should only be left-right, so we lock the Y-axis
+      y = center2.y; 
+      
+      if (dist > RADIUS) {
         let angle = Math.atan2(dy, dx);
-        x = center2.x + radius * Math.cos(angle);
-        y = center2.y + radius * Math.sin(angle);
+        x = center2.x + RADIUS * Math.cos(angle);
       }
       
+      // Clamp X position
+      x = Math.max(center2.x - RADIUS, Math.min(center2.x + RADIUS, x));
+
       steerJoy = { x, y };
       drawJoystick(ctx2, steerJoy, center2);
       
       // Calculate steering (-100 to 100)
-      steerValue = Math.round((x - center2.x) / radius * 100);
+      steerValue = Math.round((x - center2.x) / RADIUS * 100);
       steerValue = Math.max(-100, Math.min(100, steerValue));
       
       sendBLEData();
@@ -289,22 +346,18 @@
 
     steerCanvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
-      let rect = steerCanvas.getBoundingClientRect();
-      let x = e.touches[0].clientX - rect.left;
-      let y = e.touches[0].clientY - rect.top;
-      handleSteerTouch(x, y);
-    });
+      let coords = getTouchCoords(steerCanvas, e);
+      handleSteerTouch(coords.x, coords.y);
+    }, { passive: false });
 
     steerCanvas.addEventListener("touchmove", (e) => {
       e.preventDefault();
-      let rect = steerCanvas.getBoundingClientRect();
-      let x = e.touches[0].clientX - rect.left;
-      let y = e.touches[0].clientY - rect.top;
-      handleSteerTouch(x, y);
-    });
+      let coords = getTouchCoords(steerCanvas, e);
+      handleSteerTouch(coords.x, coords.y);
+    }, { passive: false });
 
     steerCanvas.addEventListener("touchend", () => {
-      steerJoy = { x: 100, y: 100 };
+      steerJoy = { x: CENTER, y: CENTER };
       drawJoystick(ctx2, steerJoy, center2);
       steerValue = 0;
       sendBLEData();
@@ -313,55 +366,56 @@
     // --- Mouse support for desktop testing ---
     let isMouseDown1 = false;
     let isMouseDown2 = false;
+    
+    function getMouseCoords(canvas, e) {
+        let rect = canvas.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
 
     moveCanvas.addEventListener("mousedown", (e) => {
       isMouseDown1 = true;
-      let rect = moveCanvas.getBoundingClientRect();
-      let x = e.clientX - rect.left;
-      let y = e.clientY - rect.top;
-      handleMoveTouch(x, y);
+      let coords = getMouseCoords(moveCanvas, e);
+      handleMoveTouch(coords.x, coords.y);
     });
 
     moveCanvas.addEventListener("mousemove", (e) => {
       if (isMouseDown1) {
-        let rect = moveCanvas.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let y = e.clientY - rect.top;
-        handleMoveTouch(x, y);
+        let coords = getMouseCoords(moveCanvas, e);
+        handleMoveTouch(coords.x, coords.y);
       }
     });
-
-    moveCanvas.addEventListener("mouseup", () => {
-      isMouseDown1 = false;
-      moveJoy = { x: 100, y: 100 };
-      drawJoystick(ctx1, moveJoy, center1);
-      throttleValue = 0;
-      sendBLEData();
+    
+    document.addEventListener("mouseup", () => {
+        if (isMouseDown1) {
+            isMouseDown1 = false;
+            moveJoy = { x: CENTER, y: CENTER };
+            drawJoystick(ctx1, moveJoy, center1);
+            throttleValue = 0;
+            sendBLEData();
+        }
+        if (isMouseDown2) {
+            isMouseDown2 = false;
+            steerJoy = { x: CENTER, y: CENTER };
+            drawJoystick(ctx2, steerJoy, center2);
+            steerValue = 0;
+            sendBLEData();
+        }
     });
 
     steerCanvas.addEventListener("mousedown", (e) => {
       isMouseDown2 = true;
-      let rect = steerCanvas.getBoundingClientRect();
-      let x = e.clientX - rect.left;
-      let y = e.clientY - rect.top;
-      handleSteerTouch(x, y);
+      let coords = getMouseCoords(steerCanvas, e);
+      handleSteerTouch(coords.x, coords.y);
     });
 
     steerCanvas.addEventListener("mousemove", (e) => {
       if (isMouseDown2) {
-        let rect = steerCanvas.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        let y = e.clientY - rect.top;
-        handleSteerTouch(x, y);
+        let coords = getMouseCoords(steerCanvas, e);
+        handleSteerTouch(coords.x, coords.y);
       }
-    });
-
-    steerCanvas.addEventListener("mouseup", () => {
-      isMouseDown2 = false;
-      steerJoy = { x: 100, y: 100 };
-      drawJoystick(ctx2, steerJoy, center2);
-      steerValue = 0;
-      sendBLEData();
     });
 
     // --- Buttons ---
@@ -369,12 +423,13 @@
       stopPressed = true;
       throttleValue = 0;
       steerValue = 0;
-      moveJoy = { x: 100, y: 100 };
-      steerJoy = { x: 100, y: 100 };
+      moveJoy = { x: CENTER, y: CENTER };
+      steerJoy = { x: CENTER, y: CENTER };
       drawJoystick(ctx1, moveJoy, center1);
       drawJoystick(ctx2, steerJoy, center2);
       sendBLEData();
-      setTimeout(() => { stopPressed = false; }, 100);
+      // Reset stop flag after a short delay
+      setTimeout(() => { stopPressed = false; }, 200); 
     });
 
     document.getElementById("superBtn").addEventListener("click", () => {
@@ -393,23 +448,34 @@
           `Throttle: ${throttleValue}% | Steering: ${steerValue}% | Mode: ${superSpeed ? 'SUPER' : 'Normal'}`;
 
         // Pack data: [throttle+100, steer+100, flags]
+        // ESP32 will unpack this.
         let data = new Uint8Array(3);
-        data[0] = throttleValue + 100;  // 0-200 range
-        data[1] = steerValue + 100;     // 0-200 range
+        data[0] = throttleValue + 100;  // 0-200 range (maps to -100 to 100)
+        data[1] = steerValue + 100;    // 0-200 range (maps to -100 to 100)
         data[2] = (stopPressed ? 0x01 : 0) | (superSpeed ? 0x02 : 0);
 
         await bleCharacteristic.writeValueWithoutResponse(data);
       } catch (error) {
         console.error("BLE send error:", error);
+        // Handle potential disconnection on send error
+        if (error.name === 'NetworkError') {
+            isConnected = false;
+            bleCharacteristic = null;
+            bleDevice = null;
+            document.getElementById("status").textContent = "❌ Disconnected (Send Error)";
+            document.getElementById("connectBtn").disabled = false;
+        }
       }
     }
 
-    // Send data periodically to maintain connection
+    // Send a heartbeat packet periodically to keep connection alive
+    // and ensure ESP32 gets values even if user isn't moving joysticks
     setInterval(() => {
       if (isConnected) {
+        // This resends the current state.
         sendBLEData();
       }
-    }, 100);
+    }, 100); // 10 times per second
   </script>
 </body>
 </html>
