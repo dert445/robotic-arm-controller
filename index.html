@@ -1,338 +1,205 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Robotic Arm BLE Controller - Stable v4</title>
+  <title>F1 Car Bluetooth Control</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      background: #0a0e27;
-      color: #e2e8f0;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    .container {
-      max-width: 600px;
-      width: 100%;
-    }
-    h1 {
-      color: #60a5fa;
-      font-weight: 700;
-    }
-    h3 {
-      border-top: 1px solid #334155;
-      padding-top: 20px;
-      margin-top: 30px;
-      color: #94a3b8;
-    }
-    button {
-      margin: 5px;
-      padding: 10px 16px;
-      font-weight: 700;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      background: radial-gradient(circle, #111, #000);
       color: white;
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-      transition: all 0.2s ease;
-      /* Prevent zoom on mobile */
-      touch-action: manipulation; 
+      text-align: center;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
     }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
-    }
-    button:active {
-      transform: translateY(1px);
-    }
-    button:disabled {
-      opacity: 0.5;
-      transform: none;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-      cursor: not-allowed;
-    }
-    .range {
-      width: 90%;
-      margin: 10px auto;
-      accent-color: #3b82f6;
-    }
-    .status {
+
+    h1 {
       margin-top: 10px;
-      font-weight: 600;
-      font-size: 1.1em;
-      padding: 8px;
-      border-radius: 8px;
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: 1.6rem;
     }
-    .good { color: #22c55e; background-color: rgba(34, 197, 94, 0.1); }
-    .bad { color: #ef4444; background-color: rgba(239, 68, 68, 0.1); }
-    .warn { color: #fbbf24; background-color: rgba(251, 191, 36, 0.1); }
-    
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      max-width: 600px;
-      margin: 20px auto;
+
+    #connectBtn {
+      background: #00bfff;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
     }
-    label {
-      font-size: 0.9em;
-      color: #cbd5e1;
+
+    .joysticks {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 40px;
     }
-    label span {
-      font-weight: 700;
-      font-size: 1.1em;
-      color: #e2e8f0;
+
+    canvas {
+      background: #222;
+      border: 2px solid #555;
+      border-radius: 50%;
+    }
+
+    .buttons {
+      margin-top: 40px;
+    }
+
+    button {
+      background: #333;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      font-size: 1rem;
+      margin: 8px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #555;
+    }
+
+    .super {
+      background: #ff4444;
+    }
+
+    .stop {
+      background: #ff8800;
     }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>🤖 Robotic Arm BLE Controller</h1>
+  <h1>🚗 F1 Car Bluetooth Controller</h1>
+  <button id="connectBtn">🔗 Connect Bluetooth (HC-05)</button>
 
-  <div class="status bad" id="status">🔴 Disconnected</div>
-  <div style="margin:20px 0;">
-    <button id="connect">🔌 Connect</button>
-    <button id="disconnect" disabled>Disconnect</button>
+  <div class="joysticks">
+    <canvas id="moveJoy" width="200" height="200"></canvas>
+    <canvas id="steerJoy" width="200" height="200"></canvas>
   </div>
 
-  <h3>Servo Angles</h3>
-  <div>
-    <label>Base: <span id="baseVal">90</span>°</label><br>
-    <input type="range" id="base" class="range" min="0" max="180" value="90">
-  </div>
-  <div>
-    <label>Shoulder: <span id="shoulderVal">90</span>°</label><br>
-    <input type="range" id="shoulder" class="range" min="0" max="180" value="90">
-  </div>
-  <div>
-    <label>Elbow: <span id="elbowVal">90</span>°</label><br>
-    <input type="range" id="elbow" class="range" min="0" max="180" value="90">
-  </div>
-  <div>
-    <label>Gripper: <span id="gripperVal">90</span>°</label><br>
-    <input type="range" id="gripper" class="range" min="0" max="180" value="90">
+  <div class="buttons">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" class="stop">Stop</button>
+    <button id="superBtn" class="super">Super Speed</button>
   </div>
 
-  <h3>Manual Controls</h3>
-  <div class="grid">
-    <button data-hold="A">Base Left</button>
-    <button data-hold="D">Base Right</button>
-    <button data-hold="W">Shoulder Up</button>
-    <button data-hold="S">Shoulder Down</button>
-    <button data-hold="Q">Elbow Up</button>
-    <button data-hold="E">Elbow Down</button>
-    <button data-cmd="O">Open Grip</button>
-    <button data-cmd="C">Close Grip</button>
-    <button data-cmd="STOP" style="background: linear-gradient(135deg, #f43f5e, #dc2626);">STOP</button>
-  </div>
-</div>
+  <script>
+    let bluetoothDevice;
+    let txCharacteristic;
+    let moveCanvas = document.getElementById("moveJoy");
+    let steerCanvas = document.getElementById("steerJoy");
+    let ctx1 = moveCanvas.getContext("2d");
+    let ctx2 = steerCanvas.getContext("2d");
 
-<script>
-// --- CONFIGURATION ---
-// These MUST match what's in your ESP32 Arduino code
-const SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
-const CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb';
-const DEVICE_NAME = 'RoboticArm_ESP32';
+    let center1 = { x: 100, y: 100 };
+    let center2 = { x: 100, y: 100 };
+    let moveJoy = { x: 100, y: 100 };
+    let steerJoy = { x: 100, y: 100 };
 
-// --- GLOBALS ---
-let device = null;
-let characteristic = null;
+    let radius = 80;
 
-// --- DOM ELEMENTS ---
-const statusEl = document.getElementById('status');
-const connectBtn = document.getElementById('connect');
-const disconnectBtn = document.getElementById('disconnect');
-
-/**
- * Helper function to create a delay.
- * @param {number} ms - Milliseconds to wait
- */
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Updates the status message and color.
- * @param {string} msg - The message to display
- * @param {'good'|'warn'|'bad'} state - The visual state
- */
-function setStatus(msg, state = 'bad') {
-  statusEl.textContent = msg;
-  statusEl.className = 'status ' + (state === 'good' ? 'good' : state === 'warn' ? 'warn' : 'bad');
-}
-
-/**
- * Sends a command string to the BLE characteristic.
- * @param {string} cmd - The command to send
- */
-async function send(cmd) {
-  if (!characteristic) {
-    console.warn('Cannot send: Not connected.');
-    return;
-  }
-  try {
-    // The '\n' is important for Arduino's readStringUntil('\n')
-    await characteristic.writeValueWithoutResponse(new TextEncoder().encode(cmd + '\n'));
-    console.log('Sent:', cmd);
-  } catch (e) {
-    console.warn('Write failed:', e);
-    // This often happens if the device disconnects
-    setStatus('⚠️ Write failed. Connection lost?', 'warn');
-  }
-}
-
-/**
- * Scans for, connects to, and configures the BLE device.
- */
-async function connect() {
-  setStatus('🔍 Scanning...', 'warn');
-  connectBtn.disabled = true;
-
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ name: DEVICE_NAME }],
-      optionalServices: [SERVICE_UUID]
-    });
-    
-    // Add event listener *before* connecting
-    device.addEventListener('gattserverdisconnected', onDisconnect);
-
-    setStatus('🤝 Connecting to GATT...', 'warn');
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-
-    setStatus('🟢 Connected', 'good');
-    disconnectBtn.disabled = false;
-
-    // --- STABLE INITIALIZATION ---
-    // Send initial servo positions one-by-one with a delay.
-    // This is much more reliable than sending them all at once.
-    setStatus('⚙️ Configuring arm...', 'warn');
-    const initCommands = ['B90', 'SH90', 'EL90', 'G90'];
-    for (const cmd of initCommands) {
-      await send(cmd);
-      await delay(100); // Wait 100ms between commands
+    // Draw initial joysticks
+    function drawJoystick(ctx, joy, center) {
+      ctx.clearRect(0, 0, 200, 200);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = "#888";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(joy.x, joy.y, 25, 0, Math.PI * 2);
+      ctx.fillStyle = "#00bfff";
+      ctx.fill();
     }
 
-    setStatus('✅ Connected & Ready', 'good');
+    drawJoystick(ctx1, moveJoy, center1);
+    drawJoystick(ctx2, steerJoy, center2);
 
-  } catch (e) {
-    console.error(e);
-    setStatus(`❌ Error: ${e.message.split(' (')[0]}`, 'bad');
-    // Re-enable button if connection failed
-    connectBtn.disabled = false;
-  }
-}
+    // --- Bluetooth Connection ---
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [0x1101] // SPP UUID
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const service = await server.getPrimaryService(0x1101);
+        txCharacteristic = await service.getCharacteristic("00002a00-0000-1000-8000-00805f9b34fb");
+        alert("✅ Connected to HC-05!");
+      } catch (error) {
+        alert("⚠️ Bluetooth connection failed: " + error);
+      }
+    });
 
-/**
- * Handles the 'gattserverdisconnected' event.
- */
-function onDisconnect() {
-  setStatus('🔴 Disconnected', 'bad');
-  connectBtn.disabled = false;
-  disconnectBtn.disabled = true;
-  device = null;
-  characteristic = null;
-}
+    // --- Touch Controls for Move Joystick ---
+    moveCanvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      let rect = moveCanvas.getBoundingClientRect();
+      let x = e.touches[0].clientX - rect.left;
+      let y = e.touches[0].clientY - rect.top;
+      let dx = x - center1.x;
+      let dy = y - center1.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < radius) {
+        moveJoy = { x, y };
+      }
+      drawJoystick(ctx1, moveJoy, center1);
 
-/**
- * Manually disconnects from the device.
- */
-async function disconnect() {
-  if (device && device.gatt.connected) {
-    await device.gatt.disconnect();
-    // onDisconnect() will be called automatically
-  } else {
-    // Just in case
-    onDisconnect();
-  }
-}
+      let speed = Math.min(Math.abs(center1.y - y) / radius * 100, 100);
+      if (y < center1.y - 10) sendData(`F:${Math.round(speed)}`);
+      else if (y > center1.y + 10) sendData(`B:${Math.round(speed)}`);
+    });
 
-// --- INITIALIZE EVENT LISTENERS ---
+    moveCanvas.addEventListener("touchend", () => {
+      moveJoy = { x: 100, y: 100 };
+      drawJoystick(ctx1, moveJoy, center1);
+      sendData("STOP");
+    });
 
-// Connect/Disconnect buttons
-connectBtn.onclick = connect;
-disconnectBtn.onclick = disconnect;
+    // --- Touch Controls for Steer Joystick ---
+    steerCanvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      let rect = steerCanvas.getBoundingClientRect();
+      let x = e.touches[0].clientX - rect.left;
+      let y = e.touches[0].clientY - rect.top;
+      let dx = x - center2.x;
+      let dy = y - center2.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < radius) {
+        steerJoy = { x, y };
+      }
+      drawJoystick(ctx2, steerJoy, center2);
 
-// Command buttons (single click)
-document.querySelectorAll('[data-cmd]').forEach(btn => {
-  btn.addEventListener('click', () => send(btn.dataset.cmd));
-});
+      let angle = Math.min(Math.max(x, 45), 135);
+      sendData(`L:${Math.round(angle)}`);
+    });
 
-// Hold buttons (continuous movement)
-document.querySelectorAll('[data-hold]').forEach(btn => {
-  const cmd = btn.dataset.hold;
-  let pressTimer = null;
+    steerCanvas.addEventListener("touchend", () => {
+      steerJoy = { x: 100, y: 100 };
+      drawJoystick(ctx2, steerJoy, center2);
+      sendData("L:90"); // center steering
+    });
 
-  const startSending = (e) => {
-    // Prevent default touch behavior (like scrolling or zooming)
-    if (e.type === 'touchstart') e.preventDefault();
-    
-    // Stop any previous "STOP" command
-    clearTimeout(pressTimer);
-    
-    // Send the command
-    send(cmd);
-  };
-  
-  const stopSending = () => {
-    // Send the "STOP" command after a tiny delay
-    // This prevents the "STOP" from arriving before the last "move" command
-    clearTimeout(pressTimer);
-    pressTimer = setTimeout(() => send('STOP'), 50);
-  };
-  
-  // Mouse events
-  btn.addEventListener('mousedown', startSending);
-  btn.addEventListener('mouseup', stopSending);
-  btn.addEventListener('mouseleave', stopSending);
-  
-  // Touch events
-  btn.addEventListener('touchstart', startSending);
-  btn.addEventListener('touchend', stopSending);
-});
+    // --- Buttons ---
+    document.getElementById("startBtn").addEventListener("click", () => sendData("F:100"));
+    document.getElementById("stopBtn").addEventListener("click", () => sendData("STOP"));
+    document.getElementById("superBtn").addEventListener("click", () => sendData("SUPER"));
 
-/**
- * Binds a slider to send a command, with debouncing.
- * @param {string} id - The ID of the slider element
- * @param {string} prefix - The command prefix (e.g., 'B' for Base)
- */
-function bindSlider(id, prefix) {
-  const el = document.getElementById(id);
-  const valEl = document.getElementById(id + 'Val');
-  let timer = null;
-  
-  el.addEventListener('input', () => {
-    // Update the label immediately
-    valEl.textContent = el.value;
-    
-    // Clear the previous timeout
-    clearTimeout(timer);
-    
-    // Set a new timeout to send the command
-    // This prevents flooding the BLE connection
-    timer = setTimeout(() => {
-      send(prefix + el.value);
-    }, 150); // 150ms debounce
-  });
-}
-
-bindSlider('base', 'B');
-bindSlider('shoulder', 'SH');
-bindSlider('elbow', 'EL');
-bindSlider('gripper', 'G');
-
-</script>
+    // --- Send Data ---
+    async function sendData(data) {
+      console.log("Send:", data);
+      try {
+        if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+          // Send as text via Bluetooth serial
+          const encoder = new TextEncoder();
+          await txCharacteristic.writeValue(encoder.encode(data + "\n"));
+        }
+      } catch (error) {
+        console.error("Bluetooth send error:", error);
+      }
+    }
+  </script>
 </body>
 </html>
