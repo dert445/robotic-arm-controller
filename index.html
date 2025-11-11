@@ -238,7 +238,10 @@
         document.getElementById("status").textContent = "Scanning...";
         
         bleDevice = await navigator.bluetooth.requestDevice({
-          filters: [{ name: "ESP32 F1 Car" }],
+          // --- FIX: Changed filter from 'name' to 'services' ---
+          // This is more reliable if the device name is slightly different
+          // The ESP32 MUST be advertising this service UUID.
+          filters: [{ services: [SERVICE_UUID] }],
           optionalServices: [SERVICE_UUID]
         });
 
@@ -265,6 +268,8 @@
         document.getElementById("status").textContent = "⚠️ Connection failed";
         // --- FIX: Replaced alert() with console.error() ---
         console.error("Bluetooth connection failed:", error);
+        // --- ADDED: More explicit console log for debugging ---
+        console.log("Could not connect. Make sure the ESP32 is powered on, running the correct code, and advertising the lowercase UUID.");
       }
     });
 
